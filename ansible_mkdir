@@ -1,0 +1,104 @@
+#!/bin/sh
+# Create directories for ansible
+#    .
+#    ├── common-roles/
+#    │   ├── base/
+#    │   │   ├── defaults/
+#    │   │   │   └── main.yml
+#    │   │   ├── files/
+#    │   │   │   ├── ...
+#    │   │   │   └── ...
+#    │   │   ├── handlers/
+#    │   │   │   └── main.yml
+#    │   │   ├── templates/
+#    │   │   │   ├── ...
+#    │   │   │   └── ...
+#    │   │   └── tasks/
+#    │   │       └── main.yml
+#    │   ├── role-A/
+#    │   │   :
+#    │   └── role-B/
+#    │       :
+#    ├── service-A/
+#    │   ├── group_vars/
+#    │   │   ├── all
+#    │   │   ├── development
+#    │   │   ├── production
+#    │   │   └── staging
+#    │   ├── host_vars/
+#    │   │   └── host1
+#    │   ├── hosts-development
+#    │   ├── hosts-staging
+#    │   ├── hosts-production
+#    │   ├── roles/
+#    │   │   ├── role-X/
+#    │   │   │   ├── defaults//
+#    │   │   │   ├── files/
+#    │   │   │   ├── handlers/
+#    │   │   │   ├── meta/
+#    │   │   │   ├── tasks/
+#    │   │   │   └── templates/
+#    │   │   └── role-Y/
+#    │   │       ├── defaults/
+#    │   │       ├── files/
+#    │   │       ├── handlers/
+#    │   │       ├── meta/
+#    │   │       ├── tasks/
+#    │   │       └── templates/
+#    │   └── site.yml
+#    ├── private_vars/
+#    │   └── common.yml
+#    ├── vars/
+#    │   └── common.yml
+#    :
+
+if [ -z "$1" ] ; then
+    BASE_DIR="."
+else
+    BASE_DIR="$1"
+fi
+
+ROLE_CHILDREN="defaults files handlers templates tasks meta"
+
+makeRolesDir () {
+    for i in $ROLE_CHILDREN; do
+        mkdir "$1/$i"
+        touch "$1/$i/.keep"
+        makeYml "$1/$i" "main"
+    done
+}
+
+makeYml () {
+    touch "$1/$2.yml"
+}
+
+# Common roles
+mkdir "$BASE_DIR/common-roles"
+mkdir "$BASE_DIR/common-roles/base"
+COMMON_ROLE_BASE_PATH="$BASE_DIR/common-roles/base"
+makeRolesDir "$COMMON_ROLE_BASE_PATH"
+
+# Service
+SERVICE_CHILDREN="group_vars host_vars hosts-development hosts-staging hosts-production roles"
+PARENT_DIR="$BASE_DIR/service-a"
+mkdir "$PARENT_DIR"
+for i in $SERVICE_CHILDREN; do
+    SERVICE_DIR="$PARENT_DIR/$i"
+    mkdir "$SERVICE_DIR"
+    touch "$SERVICE_DIR/.keep"
+    if [ $i == "roles" ]; then
+        makeRolesDir "$SERVICE_DIR"
+    fi
+done
+
+touch "$PARENT_DIR/site.yml"
+
+# private vars
+PRIVATE_VAR="$BASE_DIR/private_vars"
+mkdir "$PRIVATE_VAR"
+makeYml "$PRIVATE_VAR" "common"
+
+# vars
+VAR="$BASE_DIR/vars"
+mkdir "$VAR"
+makeYml "$VAR" "common"
